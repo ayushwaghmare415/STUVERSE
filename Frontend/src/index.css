@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Remove default tap highlight color on mobile WebKit browsers for admin notifications only */
+.admin-notifications-page * {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
