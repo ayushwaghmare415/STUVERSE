@@ -1,12 +1,15 @@
+// server.js
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const http = require('http');
-const connectDB = require('./config/db');
 const path = require('path');
 
+const connectDB = require('./config/db');
 const errorMiddleware = require('./middleware/errorMiddleware');
+
+// Import routes
 const authRoutes = require('./routes/authRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 const vendorRoutes = require('./routes/vendorRoutes');
@@ -19,45 +22,43 @@ const redemptionRoutes = require('./routes/redemptionRoutes');
 const app = express();
 
 // ==================
-// Global Middleware
+// Middleware
 // ==================
 const defaultOrigins = ['http://localhost:3000', 'http://localhost:5173'];
-const deployOrigin = 'https://stuverse-dmw8.onrender.com';
+const prodOrigin = 'https://stuverse-dmw8.onrender.com';
+const deployOrigin = process.env.FRONTEND_URL || prodOrigin;
 
 const rawOrigins = [
-  ...((process.env.CORS_ORIGIN || '').split(',').map((o) => o.trim())),
-  ...((process.env.FRONTEND_URL || '').split(',').map((o) => o.trim())),
+  ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map(o => o.trim()) : []),
   ...defaultOrigins,
   deployOrigin,
+  prodOrigin,
 ].filter(Boolean);
 
 const allowedOrigins = [...new Set(rawOrigins)];
 
-app.use(
-cors({
-origin: function (origin, callback) {
-if (!origin) return callback(null, true);
-if (allowedOrigins.includes(origin)) {
-return callback(null, true);
-}
-callback(new Error(`CORS policy: origin ${origin} not allowed`));
-},
-credentials: true,
-})
-);
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // mobile apps or Postman
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS policy: origin ${origin} not allowed`));
+  },
+  credentials: true,
+}));
 
 app.use(express.json());
 
+// Rate limiter for login
 const loginLimiter = rateLimit({
-windowMs: 15 * 60 * 1000,
-max: 10,
-message: 'Too many login attempts, please try again later.',
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Too many login attempts, please try again later.',
 });
 
 app.use('/api/auth/login', loginLimiter);
 
 // ==================
-// API Routes
+// Routes
 // ==================
 app.use('/api/auth', authRoutes);
 app.use('/api/student', studentRoutes);
@@ -69,72 +70,68 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/offers', offersRoutes);
 app.use('/api/redemptions', redemptionRoutes);
 
-// API test route
 app.get('/api', (req, res) => {
-res.json({ message: 'STUVERSE Backend Running 🚀' });
+  res.json({ message: 'STUVERSE Backend Running 🚀' });
 });
 
 app.use(errorMiddleware);
 
-async function start() {
-try {
-await connectDB();
-console.log('MongoDB Connected Successfully ✅');
-
-const server = http.createServer(app);
-
 // ==================
-// Socket.io Setup
+// Start Server
 // ==================
-const { Server } = require('socket.io');
+const startServer = async () => {
+  try {
+    await connectDB();
 
-const io = new Server(server, {
-  cors: {
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      callback(new Error(`Socket.io CORS: origin ${origin} not allowed`));
-    },
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-});
+    const server = http.createServer(app);
 
-app.set('io', io);
+    // ==================
+    // Socket.io
+    // ==================
+    const { Server } = require('socket.io');
+    const io = new Server(server, {
+      cors: {
+        origin: function(origin, callback) {
+          if (!origin) return callback(null, true);
+          if (allowedOrigins.includes(origin)) return callback(null, true);
+          callback(new Error(`Socket.io CORS: origin ${origin} not allowed`));
+        },
+        methods: ['GET', 'POST'],
+        credentials: true,
+      },
+    });
 
-const { setupSocket } = require('./sockets/socket');
-setupSocket(io);
+    app.set('io', io);
 
-io.on('connection', (socket) => {
-  console.log('Socket connected', socket.id);
-  socket.on('disconnect', () => {
-    console.log('Socket disconnected', socket.id);
-  });
-});
+    const { setupSocket } = require('./sockets/socket');
+    setupSocket(io);
 
-const frontendPath = path.join(__dirname, '../Frontend/dist'); // go up from Backend
+    io.on('connection', (socket) => {
+      console.log('Socket connected', socket.id);
+      socket.on('disconnect', () => {
+        console.log('Socket disconnected', socket.id);
+      });
+    });
 
-// Serve static files
-app.use(express.static(frontendPath));
+    // ==================
+    // Serve Frontend (optional SPA)
+    // ==================
+    const frontendPath = path.join(__dirname, '../Frontend/dist');
+    app.use(express.static(frontendPath));
 
-// Serve index.html for any other route (SPA support)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
-});
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(frontendPath, 'index.html'));
+    });
 
-const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || 5000;
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT} 🚀`);
+    });
 
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} 🚀`);
-});
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+};
 
-
-} catch (err) {
-console.error('Failed to start server:', err);
-process.exit(1);
-}
-}
-
-start();
+startServer();
