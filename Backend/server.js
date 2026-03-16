@@ -116,12 +116,14 @@ const startServer = async () => {
     // ==================
     // Serve Frontend (optional SPA)
     // ==================
-    const frontendPath = path.join(__dirname, '../Frontend/dist');
-    app.use(express.static(frontendPath));
+    // Serve frontend build
+const frontendPath = path.resolve(__dirname, '..', 'Frontend', 'dist');
 
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(frontendPath, 'index.html'));
-    });
+app.use(express.static(frontendPath));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.resolve(frontendPath, 'index.html'));
+});
 
     const PORT = process.env.PORT || 5000;
     server.listen(PORT, () => {
