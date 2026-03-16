@@ -109,20 +109,15 @@ io.on('connection', (socket) => {
   });
 });
 
-// ==================================
-// SERVE REACT FRONTEND (VITE BUILD)
-// ==================================
-if (process.env.NODE_ENV === 'production') {
-  const frontendPath = path.resolve(__dirname, '..', 'Frontend', 'dist');
+const frontendPath = path.join(__dirname, '../Frontend/dist'); // go up from Backend
 
-  // Serve static React files
-  app.use(express.static(frontendPath));
+// Serve static files
+app.use(express.static(frontendPath));
 
-  // React Router support
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(frontendPath, 'index.html'));
-  });
-}
+// Serve index.html for any other route (SPA support)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
 const PORT = process.env.PORT || 5000;
 
