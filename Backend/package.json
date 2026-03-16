@@ -16,6 +16,7 @@
     "mongodb"
   ],
   "author": "Ayush Waghmare",
+  "types": "module",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
