@@ -6,8 +6,8 @@
   "type": "commonjs",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js",
-    "build": "echo build complete"
+  "start": "node server.js",
+  "build": "npm install --prefix ../Frontend && npm run build --prefix ../Frontend"
   },
   "keywords": [
     "stuverse",
@@ -28,6 +28,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.23.0",
     "multer": "^1.4.5-lts.1",
+    "path": "^0.12.7",
     "socket.io": "^4.8.3",
     "streamifier": "^0.1.1"
   },

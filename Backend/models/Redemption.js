@@ -61,9 +61,6 @@ const redemptionSchema = new mongoose.Schema({
 
 // Geospatial index for student location tracking
 redemptionSchema.index({ studentLocation: '2dsphere' });
-// Ensure redemption code is indexed uniquely for fast lookups and uniqueness enforcement
-redemptionSchema.index({ redemptionCode: 1 }, { unique: true });
-
 // Prevent duplicate claims: one student can claim one offer only once
 redemptionSchema.index({ studentId: 1, couponId: 1 }, { unique: true });
 
@@ -72,8 +69,5 @@ redemptionSchema.index({ studentId: 1, status: 1 });
 
 // Index for efficient queries by student and vendor when enforcing one-per-vendor rule
 redemptionSchema.index({ studentId: 1, vendorId: 1, status: 1 });
-
-// Index for redemption code lookups (for vendor verification)
-redemptionSchema.index({ redemptionCode: 1 });
 
 module.exports = mongoose.model('Redemption', redemptionSchema);

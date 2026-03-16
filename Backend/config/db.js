@@ -12,10 +12,8 @@ module.exports = async () => {
 
   try {
     // mongoose options are optional depending on version
-    await mongoose.connect(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    // using default options for modern Mongoose/Node drivers
+    await mongoose.connect(uri);
     console.log('MongoDB connected');
   } catch (err) {
     console.error('MongoDB connection error:', err);
